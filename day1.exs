@@ -15,12 +15,11 @@ defmodule FuelCalculator do
 
   defp fuel_for_mass(mass) do
     mass
-    |> (&(div(&1, 3) - 2)).()
-    |> (fn
-          result when result > 0 -> result
-          _ -> 0
-        end).()
+    |> conversion_function()
+    |> max(0)
   end
+
+  defp conversion_function(mass), do: div(mass, 3) - 2
 end
 
 input_stream =
