@@ -1,13 +1,36 @@
 defmodule WireGrid do
-  def run([path]) when is_binary(path) do
-    path
-    |> read_file()
-    |> Enum.map(&run_wire/1)
-    |> cross_points()
-    |> MapSet.to_list()
+  def run([path], print) when is_binary(path) do
+    [{visited_points1, path1}, {visited_points2, path2}] =
+      path
+      |> read_file()
+      |> Enum.map(&run_wire/1)
+
+    intersections =
+      [visited_points1, visited_points2]
+      |> cross_points()
+      |> MapSet.to_list()
+
+    intersections
     |> Enum.sort_by(&Taxicab.distance({0, 0}, &1))
     |> List.first()
     |> Taxicab.distance({0, 0})
+    |> (fn result -> print && IO.puts(result) end).()
+
+    {intersections, path1, path2}
+  end
+
+  def run(["-2", path], _print) do
+    {intersections, path1, path2} = run([path], false)
+
+    path1 = [{0, 0} | path1]
+    path2 = [{0, 0} | path2]
+
+    intersections
+    |> Enum.map(fn point ->
+      Enum.find_index(path1, &(&1 == point)) + Enum.find_index(path2, &(&1 == point))
+    end)
+    |> Enum.sort()
+    |> List.first()
     |> IO.puts()
   end
 
@@ -26,18 +49,20 @@ defmodule WireGrid do
   end
 
   def run_wire(instructions) when is_list(instructions),
-    do: run_wire(instructions, {MapSet.new(), {0, 0}})
+    do: run_wire(instructions, {MapSet.new(), {0, 0}, []})
 
-  def run_wire([], {path, _position} = _acc), do: path
+  def run_wire([], {visited_points, _position, path} = _acc), do: {visited_points, path}
 
-  def run_wire([instruction | rest], {path, position} = _acc) do
+  def run_wire([instruction | rest], {visited_points, position, path} = _acc) do
     {new_section, new_position} = draw_path(instruction, position)
 
-    new_path =
+    new_visited_points =
       new_section
-      |> Enum.into(path)
+      |> Enum.into(visited_points)
 
-    run_wire(rest, {new_path, new_position})
+    new_path = path ++ new_section
+
+    run_wire(rest, {new_visited_points, new_position, new_path})
   end
 
   def draw_path("R" <> len = _instr, {x, y} = _cur_position) do
@@ -70,4 +95,4 @@ defmodule Taxicab do
 end
 
 System.argv()
-|> WireGrid.run()
+|> WireGrid.run(true)
