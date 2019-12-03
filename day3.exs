@@ -11,9 +11,9 @@ defmodule WireGrid do
       |> MapSet.to_list()
 
     intersections
-    |> Enum.sort_by(&Taxicab.distance({0, 0}, &1))
+    |> Enum.map(&Taxicab.distance({0, 0}, &1))
+    |> Enum.sort()
     |> List.first()
-    |> Taxicab.distance({0, 0})
     |> (fn result -> print && IO.puts(result) end).()
 
     {intersections, path1, path2}
@@ -21,9 +21,6 @@ defmodule WireGrid do
 
   def run(["-2", path], _print) do
     {intersections, path1, path2} = run([path], false)
-
-    path1 = [{0, 0} | path1]
-    path2 = [{0, 0} | path2]
 
     intersections
     |> Enum.map(fn point ->
@@ -49,7 +46,7 @@ defmodule WireGrid do
   end
 
   def run_wire(instructions) when is_list(instructions),
-    do: run_wire(instructions, {MapSet.new(), {0, 0}, []})
+    do: run_wire(instructions, {MapSet.new(), {0, 0}, [{0, 0}]})
 
   def run_wire([], {visited_points, _position, path} = _acc), do: {visited_points, path}
 
