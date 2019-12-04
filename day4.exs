@@ -2,12 +2,20 @@ defmodule Password do
   def run([start_val, end_val] = args) when is_binary(start_val) and is_binary(end_val) do
     args
     |> Enum.map(&String.to_integer/1)
-    |> brute_force()
+    |> brute_force(&meets_criteria?/1)
     |> Enum.count()
     |> IO.puts()
   end
 
-  def brute_force([start_val, end_val] = _range)
+  def run(["-2", start_val, end_val] = _args) when is_binary(start_val) and is_binary(end_val) do
+    [start_val, end_val]
+    |> Enum.map(&String.to_integer/1)
+    |> brute_force(&meets_criteria2?/1)
+    |> Enum.count()
+    |> IO.puts()
+  end
+
+  def brute_force([start_val, end_val] = _range, criteria_fn)
       when is_integer(start_val) and is_integer(end_val) do
     last_val = end_val + 1
 
@@ -17,22 +25,37 @@ defmodule Password do
     end)
     |> Stream.map(&Integer.to_string/1)
     |> Stream.map(&String.to_charlist/1)
-    |> Stream.filter(&meets_criteria?/1)
+    |> Stream.filter(criteria_fn)
   end
 
   def meets_criteria?(password) when is_list(password) do
-    with true <- repeated_letters?(password),
-         true <- sequence_growing?(password) do
-      true
-    else
-      false -> false
-    end
+    repeated_letters?(password) && sequence_growing?(password)
+  end
+
+  def meets_criteria2?(password) when is_list(password) do
+    repeated_letters_twice?(password) && sequence_growing?(password)
   end
 
   def repeated_letters?(password) when is_list(password) do
     password
     |> Enum.chunk_every(2, 1, :discard)
     |> Enum.any?(fn [a, b] -> a == b end)
+  end
+
+  def repeated_letters_twice?(password) when is_list(password) do
+    chunk_fn = fn
+      element, [element | _rest] = acc -> {:cont, [element | acc]}
+      element, acc -> {:cont, acc, [element]}
+    end
+
+    after_fn = fn
+      acc -> {:cont, acc, []}
+    end
+
+    password
+    |> Enum.chunk_while([], chunk_fn, after_fn)
+    |> Enum.filter(&(Enum.count(&1) == 2))
+    |> Enum.count() > 0
   end
 
   def sequence_growing?(password) when is_list(password) do
