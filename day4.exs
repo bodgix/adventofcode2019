@@ -43,17 +43,8 @@ defmodule Password do
   end
 
   def repeated_letters_twice?(password) when is_list(password) do
-    chunk_fn = fn
-      element, [element | _rest] = acc -> {:cont, [element | acc]}
-      element, acc -> {:cont, acc, [element]}
-    end
-
-    after_fn = fn
-      acc -> {:cont, acc, []}
-    end
-
     password
-    |> Enum.chunk_while([], chunk_fn, after_fn)
+    |> Enum.chunk_by(& &1)
     |> Enum.filter(&(Enum.count(&1) == 2))
     |> Enum.count() > 0
   end
